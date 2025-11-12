@@ -1,0 +1,7 @@
+{
+  "ics_url": "https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics",
+  "offwork_time": "18:00",
+  "autostart": false,
+  "smart_count": true,
+  "refresh_interval_minutes": 60
+}
