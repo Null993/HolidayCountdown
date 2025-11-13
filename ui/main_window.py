@@ -79,6 +79,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, config_path=CONFIG_PATH):
         super().__init__()
+        self.status_bar = None
+        self.night_countdown_label = None
+        self.mid_countdown_label = None
+        self.scroll = None
+        self.list_container = None
+        self.refresh_timer = None
+        self.excl_makeup_label = None
+        self.ui_timer = None
+        self.tray = None
+        self.off_apply_btn = None
+        self.excl_makeup_weekend_label = None
+        self.off_countdown_label = None
+        self.total_label = None
+        self.off_mid_time_edit = None
+        self.list_layout = None
+        self.pin_chk = None
+        self.opacity_slider = None
+        self.refresh_btn = None
+        self.lock_chk = None
+        self.off_time_edit = None
         self.topmost = False
         self.locked = False
         self.opacity = 1.0
@@ -100,6 +120,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self._dragging = False
         self._drag_pos = None
 
+    # === 新增：统一的安全弹窗函数 ===
+    def show_safe_dialog(self, title: str, text: str, icon=QtWidgets.QMessageBox.Icon.Information):
+        """
+        安全弹窗：在主窗口置顶状态下仍能正常显示在最前面
+        """
+        msg = QtWidgets.QMessageBox(self)
+        msg.setIcon(icon)
+        msg.setWindowTitle(title)
+        msg.setText(text)
+
+        # 若主窗口置顶，则同步置顶
+        if self.windowFlags() & QtCore.Qt.WindowType.WindowStaysOnTopHint:
+            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+
+        # 强制前置
+        msg.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+        msg.show()
+        msg.raise_()
+        msg.activateWindow()
+
+        msg.exec()
 
     def load_config(self):
         if os.path.exists(self.config_path):
@@ -136,18 +177,18 @@ class MainWindow(QtWidgets.QMainWindow):
         controls = QtWidgets.QHBoxLayout()
 
         self.refresh_btn = QtWidgets.QPushButton("刷新 ICS")
-        self.refresh_btn.clicked.connect(self.load_ics_and_refresh)
+        self.refresh_btn.clicked.connect(self.on_refresh_clicked)
         controls.addWidget(self.refresh_btn)
 
         # --- 新增控制组件 ---
         self.pin_chk = QtWidgets.QCheckBox("置顶")
         self.pin_chk.setChecked(self.topmost)
-        self.pin_chk.stateChanged.connect(self.toggle_topmost)
+        self.pin_chk.stateChanged.connect(self.on_pin_changed)
         controls.addWidget(self.pin_chk)
 
         self.lock_chk = QtWidgets.QCheckBox("锁定")
         self.lock_chk.setChecked(self.locked)
-        self.lock_chk.stateChanged.connect(self.toggle_lock)
+        self.lock_chk.stateChanged.connect(self.on_lock_changed)
         controls.addWidget(self.lock_chk)
 
         controls.addWidget(QtWidgets.QLabel("透明度"))
@@ -155,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.opacity_slider.setRange(30, 100)
         self.opacity_slider.setValue(int(self.opacity * 100))
         self.opacity_slider.setFixedWidth(100)
-        self.opacity_slider.valueChanged.connect(self.change_opacity)
+        self.opacity_slider.valueChanged.connect(self.on_opacity_changed)
         controls.addWidget(self.opacity_slider)
 
         controls.addStretch()
@@ -164,7 +205,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # === 节假日列表 ===
         self.scroll = QtWidgets.QScrollArea()
         self.scroll.setWidgetResizable(True)
-        # 修复1: 设置合理的最小高度，确保列表可见
         self.scroll.setMinimumHeight(200)
         self.list_container = QtWidgets.QWidget()
         self.list_layout = QtWidgets.QVBoxLayout()
@@ -175,21 +215,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # === 底部：下班设置 & 统计 ===
         bottom = QtWidgets.QHBoxLayout()
         bottom_left = QtWidgets.QVBoxLayout()
+        grid = QtWidgets.QGridLayout()
 
-        off_layout = QtWidgets.QHBoxLayout()
-        off_layout.addWidget(QtWidgets.QLabel("下班时间 (HH:MM):"))
+        # === 第一行：中午 ===
+        grid.addWidget(QtWidgets.QLabel("中午下班时间 (HH:MM):"), 0, 0)
+        self.off_mid_time_edit = QtWidgets.QLineEdit(self.config.get("offwork_mid_time", "12:00"))
+        self.off_mid_time_edit.setFixedWidth(80)
+        self.off_mid_time_edit.editingFinished.connect(lambda: self.apply_offwork_time("mid"))
+        grid.addWidget(self.off_mid_time_edit, 0, 1)
+        self.mid_countdown_label = QtWidgets.QLabel("中午下班倒计时：--:--:--")
+        grid.addWidget(self.mid_countdown_label, 0, 2, 1, 2)
+
+        # === 第二行：晚上 ===
+        grid.addWidget(QtWidgets.QLabel("晚上下班时间 (HH:MM):"), 1, 0)
         self.off_time_edit = QtWidgets.QLineEdit(self.config.get("offwork_time", "18:00"))
-        off_layout.addWidget(self.off_time_edit)
-        self.off_apply_btn = QtWidgets.QPushButton("应用")
-        self.off_apply_btn.clicked.connect(self.apply_offwork_time)
-        off_layout.addWidget(self.off_apply_btn)
-        bottom_left.addLayout(off_layout)
+        self.off_time_edit.setFixedWidth(80)
+        self.off_time_edit.editingFinished.connect(lambda: self.apply_offwork_time("night"))
+        grid.addWidget(self.off_time_edit, 1, 1)
+        self.night_countdown_label = QtWidgets.QLabel("晚上下班倒计时：--:--:--")
+        grid.addWidget(self.night_countdown_label, 1, 2, 1, 2)
 
-        self.off_countdown_label = QtWidgets.QLabel("")
-        bottom_left.addWidget(self.off_countdown_label)
+        bottom_left.addLayout(grid)
         bottom.addLayout(bottom_left)
         bottom.addStretch()
 
+        # --- 假期统计 ---
         stats_layout = QtWidgets.QVBoxLayout()
         self.total_label = QtWidgets.QLabel("总假期天数: -")
         self.excl_makeup_label = QtWidgets.QLabel("排除调休: 0")
@@ -198,17 +248,29 @@ class MainWindow(QtWidgets.QMainWindow):
         stats_layout.addWidget(self.excl_makeup_label)
         stats_layout.addWidget(self.excl_makeup_weekend_label)
         bottom.addLayout(stats_layout)
+
         v.addLayout(bottom)
+
+        # === 左下角消息提示 ===
+        msg_layout = QtWidgets.QHBoxLayout()
+        self.message_label = QtWidgets.QLabel("")
+        self.message_label.setStyleSheet("color: gray; font-size: 12px;")
+        msg_layout.addWidget(self.message_label)
+        msg_layout.addStretch()
+        v.addLayout(msg_layout)
+
+        # === 状态栏（保留但不用于消息提示）===
+        self.status_bar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.status_bar)
 
         central.setLayout(v)
         self.setCentralWidget(central)
 
-        # 修复2: 设置合理的初始大小和最小尺寸
         self.setMinimumSize(700, 400)
         self.resize(700, 500)
         self.setWindowOpacity(self.opacity)
 
-        # === 托盘 ===
+        # 托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
         icon = QtGui.QIcon.fromTheme("calendar")
         if icon.isNull():
@@ -225,8 +287,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tray.activated.connect(self.on_tray_activated)
         self.tray.show()
 
-        # 应用启动时的置顶与锁定状态
         QtCore.QTimer.singleShot(100, self._apply_window_state)
+
+    # === 新增：专用消息提示函数 ===
+    def show_message(self, text: str, duration: int = 3000):
+        """在左下角固定label中输出短暂消息"""
+        self.message_label.setText(text)
+        QtCore.QTimer.singleShot(duration, lambda: self.message_label.setText(""))
+
+    # === 替换逻辑：按钮与开关消息 ===
+    def on_refresh_clicked(self):
+        self.show_message("正在刷新假期数据...")
+        self.load_ics_and_refresh()
+
+
+    def on_pin_changed(self, state):
+        self.toggle_topmost(state)
+        self.show_message("窗口已置顶" if state else "窗口已取消置顶")
+
+    def on_lock_changed(self, state):
+        self.toggle_lock(state)
+        self.show_message("窗口已锁定" if state else "窗口已解锁")
+
+    def on_opacity_changed(self, value):
+        self.change_opacity(value)
+        self.show_message(f"透明度：{value}%")
 
     def _apply_window_state(self):
         """应用配置中的窗口状态"""
@@ -349,15 +434,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.exists(CACHE_PATH):
                 with open(CACHE_PATH, "r", encoding="utf-8") as f:
                     data = f.read()
-                QtWidgets.QMessageBox.information(
-                    self, "离线模式",
-                    "无法获取最新假期信息，已使用本地缓存。"
-                )
+                self.show_safe_dialog("离线模式","无法获取最新假期信息，已使用本地缓存。")
             else:
-                QtWidgets.QMessageBox.warning(
-                    self, "错误",
-                    "无法获取假期数据，且没有本地缓存。"
-                )
+
+                self.show_safe_dialog("错误", "无法获取假期数据，且没有本地缓存。")
                 return
 
         if data:
@@ -391,37 +471,67 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_countdowns(self):
         now = datetime.now()
         for item in self.items:
-            if item.holiday.flag_None == True:
+            if item.holiday.flag_None:
                 continue
             item.update_countdown(now=now)
+
         try:
-            hh, mm = map(int, self.config.get("offwork_time", "18:00").split(":"))
-            today_off = datetime.combine(datetime.today(), dt_time(hour=hh, minute=mm))
-            t = time_until(today_off, now=now)
-            if t.total_seconds() <= 0:
-                self.off_countdown_label.setText("已过下班时间")
+            # === 中午下班倒计时 ===
+            hh, mm = map(int, self.config.get("offwork_mid_time", "12:00").split(":"))
+            mid_off = datetime.combine(datetime.today(), dt_time(hour=hh, minute=mm))
+            t_mid = time_until(mid_off, now=now)
+            if t_mid.total_seconds() <= 0:
+                self.mid_countdown_label.setText("中午下班倒计时：已过时间")
             else:
-                sec = int(t.total_seconds())
-                h = sec // 3600
-                m = (sec % 3600) // 60
-                s = sec % 60
-                self.off_countdown_label.setText(f"下班倒计时：{h}时 {m}分 {s}秒")
-        except Exception as e:
-            self.off_countdown_label.setText("下班时间格式错误，请输入 HH:MM")
+                sec = int(t_mid.total_seconds())
+                h, m, s = sec // 3600, (sec % 3600) // 60, sec % 60
+                self.mid_countdown_label.setText(f"中午下班倒计时：{h}时 {m}分 {s}秒")
 
-    def apply_offwork_time(self):
-        txt = self.off_time_edit.text().strip()
+            # === 晚上下班倒计时 ===
+            hh, mm = map(int, self.config.get("offwork_time", "18:00").split(":"))
+            night_off = datetime.combine(datetime.today(), dt_time(hour=hh, minute=mm))
+            t_night = time_until(night_off, now=now)
+            if t_night.total_seconds() <= 0:
+                self.night_countdown_label.setText("晚上下班倒计时：已过时间")
+            else:
+                sec = int(t_night.total_seconds())
+                h, m, s = sec // 3600, (sec % 3600) // 60, sec % 60
+                self.night_countdown_label.setText(f"晚上下班倒计时：{h}时 {m}分 {s}秒")
+
+        except Exception:
+            self.mid_countdown_label.setText("中午下班倒计时：格式错误")
+            self.night_countdown_label.setText("晚上下班倒计时：格式错误")
+
+    def apply_offwork_time(self, which="both"):
         try:
-            hh, mm = map(int, txt.split(":"))
-            assert 0 <= hh < 24 and 0 <= mm < 60
-            self.config["offwork_time"] = txt
-            self.save_config()
-            QtWidgets.QMessageBox.information(self, "已保存", f"下班时间已设为 {txt}")
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "错误", "时间格式应为 HH:MM（24 小时）")
+            changed = False
+            if which in ("mid", "both"):
+                time_mid = self.off_mid_time_edit.text().strip()
+                hh, mm = map(int, time_mid.split(":"))
+                assert 0 <= hh < 24 and 0 <= mm < 60
+                self.config["offwork_mid_time"] = time_mid
+                changed = True
 
-    # def toggle_smart(self):
-    #     val = bool(self.smart_chk.isChecked())
-    #     self.config["smart_count"] = val
-    #     self.save_config()
-    #     self.refresh_stats()
+            if which in ("night", "both"):
+                time_night = self.off_time_edit.text().strip()
+                hh, mm = map(int, time_night.split(":"))
+                assert 0 <= hh < 24 and 0 <= mm < 60
+                self.config["offwork_time"] = time_night
+                changed = True
+
+            if changed:
+                self.save_config()
+                self.show_message("配置已保存")
+        except Exception:
+            self.show_safe_dialog("错误", "时间格式应为 HH:MM（24 小时）")
+
+
+    def show_status_message(self, msg: str, duration: int = 2000):
+        """在状态栏显示短暂提示（自动淡出）"""
+        label = QtWidgets.QLabel(msg)
+        self.status_bar.addWidget(label)
+        self.status_bar.showMessage(msg)
+
+        # 使用 QTimer 延时清空
+        QtCore.QTimer.singleShot(duration, lambda: self.status_bar.clearMessage())
+

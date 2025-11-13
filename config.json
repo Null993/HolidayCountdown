@@ -4,7 +4,8 @@
   "autostart": false,
   "smart_count": true,
   "refresh_interval_minutes": 60,
-  "topmost": false,
-  "locked": false,
-  "opacity": 0.93
+  "topmost": true,
+  "locked": true,
+  "opacity": 1.0,
+  "offwork_mid_time": "12:00"
 }
