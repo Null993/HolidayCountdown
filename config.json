@@ -5,7 +5,7 @@
   "smart_count": true,
   "refresh_interval_minutes": 60,
   "topmost": true,
-  "locked": true,
+  "locked": false,
   "opacity": 1.0,
   "offwork_mid_time": "12:00"
 }
