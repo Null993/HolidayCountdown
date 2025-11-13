@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import pytz
 
-from .parser import Holiday  # 你的 Holiday dataclass
+from .parser import Holiday
 # 如果 time_until 在别处，请确保引用到能处理 aware datetimes 的版本
 
 # 可扩展的关键词集合
@@ -33,7 +33,7 @@ def normalize_name(raw_name: Optional[str]) -> str:
     s = re.sub(r"\s+", " ", s)
 
     # 3) 去掉描述性词 '假期'/'假日'/'假' 等，但保留 '补班'/'调休'/'上班' 等关键词。
-    #    这里我们仅移除孤立的 '假期' 或 '假日' 单词（边界匹配）。
+    #    这里仅移除孤立的 '假期' 或 '假日' 单词（边界匹配）。
     s = re.sub(r"\b(假期|假日|放假)\b", "", s)
 
     # 4) 再次清理首尾空白并返回
@@ -62,7 +62,7 @@ def to_local(dt: datetime, target_tzinfo) -> datetime:
         return None
     if dt.tzinfo is None:
         # 将 naive 视为本地时区时间 (assign local tz)
-        # 使用 replace 而非 localize，是因为我们假定这个 naive 的时间就是当地时间
+        # 使用 replace 而非 localize，是因为假定这个 naive 的时间就是当地时间
         return dt.replace(tzinfo=target_tzinfo)
     # 如果已带时区，则转换到目标 tz
     return dt.astimezone(target_tzinfo)
@@ -81,7 +81,7 @@ def merge_and_filter_holidays(holidays: List[Holiday], tz_str="Asia/Shanghai") -
 
     # === Step 1. 合并同名同年假期（使用 begin 的本地年份作为分组） ===
     for h in holidays:
-        # 跳过没有结束时间或结束时间早于当前年的事件（保持你原先的意图，但用本地化时间判断）
+        # 跳过没有结束时间或结束时间早于当前年的事件
         if h.end is None:
             continue
 
@@ -156,8 +156,7 @@ def merge_and_filter_holidays(holidays: List[Holiday], tz_str="Asia/Shanghai") -
         # 获取该假期对应的补班天集合（若没有则空集合）
         work_day_set = makeup_days.get(key, set())
 
-        # 实际放假天数 = 总天数 - 补班天数（按日期数）
-        actual_days = max(0, duration_days - len(work_day_set))
+
 
 
         # for e in data["events"]:
@@ -168,9 +167,18 @@ def merge_and_filter_holidays(holidays: List[Holiday], tz_str="Asia/Shanghai") -
         #
         # actual_days = max(0, duration_days - adjust_days)
 
+        weekend_days = 0
+        for i in range(duration_days):
+            d = begin_local.date() + timedelta(days=i)
+            if d.weekday() >= 5:  # 5=周六, 6=周日
+                weekend_days += 1
 
+        # 计算各种模式下的实际天数
+        # 调休天数 = 总天数 - 补班天数（按日期数）
+        days_excl_makeup = max(0, duration_days - len(work_day_set))
+        days_excl_makeup_weekend = max(0, duration_days - len(work_day_set) - weekend_days)
 
-        # 状态与倒计时（可选：你可以把这部分封装到 Holiday 的方法）
+        # 状态与倒计时
         if begin_local.date() <= system_now.date() <= end_local.date():
             status = "进行中"
             end_of_last_day = datetime.combine(end_local.date(), datetime.max.time()).replace(tzinfo=local_tz)
@@ -192,7 +200,7 @@ def merge_and_filter_holidays(holidays: List[Holiday], tz_str="Asia/Shanghai") -
             ss = total_seconds % 60
             countdown_text = f"距放假还有 {days_left} 天 ({hh}时{mm}分{ss}秒)"
 
-        # 构造并追加 Holiday 对象（假设 Holiday 支持这些字段；若没有，可根据你的定义调整）
+        # 构造并追加 Holiday 对象
         result.append(Holiday(
             name=data["name"],
             begin=begin_local,
@@ -200,9 +208,10 @@ def merge_and_filter_holidays(holidays: List[Holiday], tz_str="Asia/Shanghai") -
             uid=data.get("uid"),
             all_day=data.get("all_day", False),
             raw_description=data.get("raw_description", ""),
-            # 若你的 Holiday dataclass/类包含下面字段，请启用它们；否则可省略或扩展类定义
+
             duration=duration_days,
-            actual_days=actual_days,
+            days_excl_makeup=days_excl_makeup,
+            days_excl_makeup_weekend=days_excl_makeup_weekend
             # status=status,
             # countdown_text=countdown_text
         ))

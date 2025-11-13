@@ -3,5 +3,8 @@
   "offwork_time": "18:00",
   "autostart": false,
   "smart_count": true,
-  "refresh_interval_minutes": 60
+  "refresh_interval_minutes": 60,
+  "topmost": false,
+  "locked": false,
+  "opacity": 0.93
 }

@@ -49,7 +49,7 @@ def is_holiday_event(holiday: Holiday) -> bool:
         return True
     return False
 
-def compute_smart_holiday_days(holidays: List[Holiday]) -> Tuple[int, int]:
+def compute_smart_holiday_days(holidays: List[Holiday]) -> Tuple[int, int, int]:
     """
     计算 (total_holiday_days, actual_holiday_days)：
     - total_holiday_days: 从所有被识别为假期的事件累计的天数（按日期计数）
@@ -58,9 +58,12 @@ def compute_smart_holiday_days(holidays: List[Holiday]) -> Tuple[int, int]:
     """
 
     total_days = 0
-    actual_days = 0
+    # actual_days = 0
+    days_excl_makeup = 0
+    days_excl_makeup_weekend = 0
     for h in holidays:
         total_days += (h.end - h.begin).days + 1
-        actual_days += h.actual_days
+        days_excl_makeup += h.days_excl_makeup
+        days_excl_makeup_weekend += h.days_excl_makeup_weekend
 
-    return total_days, actual_days
+    return total_days, days_excl_makeup, days_excl_makeup_weekend

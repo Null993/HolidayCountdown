@@ -16,11 +16,12 @@ class Holiday:
     all_day: bool
     raw_description: str
     duration: int
-    actual_days: int
+    days_excl_makeup: int
+    days_excl_makeup_weekend: int
     flag_None: bool
 
 
-    def __init__(self, flag_None=False, uid=None, name=None, begin=None, end=None, all_day=None, raw_description=None, duration=None, actual_days=None,):
+    def __init__(self, flag_None=False, uid=None, name=None, begin=None, end=None, all_day=None, raw_description=None, duration=None, days_excl_makeup=None,days_excl_makeup_weekend=None):
 
         self.uid = uid
         self.name = name
@@ -29,7 +30,8 @@ class Holiday:
         self.all_day = all_day
         self.raw_description = raw_description
         self.duration = duration
-        self.actual_days = actual_days
+        self.days_excl_makeup = days_excl_makeup
+        self.days_excl_makeup_weekend = days_excl_makeup_weekend
         self.flag_None = flag_None
 
 
@@ -59,7 +61,7 @@ def parse_ics(ics_text: str, tz_str: str = "Asia/Shanghai") -> List[Holiday]:
         all_day = getattr(ev, "all_day", False)
 
         # --- 判断是否全天事件 ---
-        is_all_day = getattr(ev, "all_day", False) or "VALUE=DATE" in str(ev)
+        is_all_day = getattr(ev, "all_day", False) or "VALUE=DATE" in ev.serialize()
         if is_all_day:
             # 全天事件：设为当天 00:00 → 当天 23:59:59
 
@@ -67,14 +69,15 @@ def parse_ics(ics_text: str, tz_str: str = "Asia/Shanghai") -> List[Holiday]:
             end = datetime.combine(end.date() - timedelta(days=1), time(23, 59, 59, tzinfo=pytz.timezone(tz_str)))
 
         events.append(Holiday(
-            uid=str(ev.uid),
-            name=str(ev.name) if ev.name else "",
+            uid=getattr(ev.uid, "value", str(ev.uid)) if ev.uid else "",
+            name=getattr(ev.name, "value", str(ev.name)) if ev.name else "",
             begin=begin,
             end=end,
             all_day=all_day,
-            raw_description=str(ev.description) if ev.description else "",
+            raw_description=getattr(ev.description, "value", str(ev.description)) if ev.description else "",
             duration= (ev.end - ev.begin).days+1,
-            actual_days=0,
+            days_excl_makeup=0,
+            days_excl_makeup_weekend=0,
         ))
 
     # 按开始时间排序
