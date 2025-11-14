@@ -8,3 +8,8 @@ config.json
 config.json
 config.json
 config.json
+/build
+/dist
+/resources
+installer.idproj
+main.spec
