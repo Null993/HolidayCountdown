@@ -13,3 +13,8 @@ config.json
 /resources
 installer.idproj
 main.spec
+/Android/app/build
+/Android/.idea
+/Android/.gradle
+Android/local.properties
+/Android/build
