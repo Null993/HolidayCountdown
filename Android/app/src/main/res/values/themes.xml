@@ -1,4 +1,22 @@
 <resources>
+    <!-- App 主题 -->
     <style name="Theme.Holiday" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- 允许沉浸式，系统栏透明 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- 让应用内容显示到系统栏下面（自定义 Insets 来避免元素被遮挡） -->
+        <item name="android:windowFullscreen">false</item>
+
+        <!-- 禁用系统默认的 fitsSystemWindows，使我们可以用 insets 控制 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
+        <!-- Material 允许 edge-to-edge -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+
+        <!-- 状态栏图标颜色：由系统根据亮/暗主题自动调节 -->
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

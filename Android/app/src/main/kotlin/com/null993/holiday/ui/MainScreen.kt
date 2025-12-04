@@ -1,7 +1,9 @@
 package com.null993.holiday.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,8 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +89,10 @@ fun MainScreen() {
             delay(1000)
         }
     }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    val totalHolidays = holidays.sumOf { it.duration }.toInt()
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -104,23 +113,42 @@ fun MainScreen() {
             )
         },
         bottomBar = {
-            BottomSection(
-                midTime = midTimeStr,
-                onMidTimeChange = {
-                    midTimeStr = it
-                    PreferencesStore.setOffworkMid(it)
-                },
-                midCountdown = midCountdown,
-                nightTime = nightTimeStr,
-                onNightTimeChange = {
-                    nightTimeStr = it
-                    PreferencesStore.setOffworkNight(it)
-                },
-                nightCountdown = nightCountdown,
-                totalHolidays = holidays.sumOf { it.duration }.toInt(),
-                totalExclMakeup = holidays.sumOf { it.daysExclMakeup },
-                totalExclWeekend = holidays.sumOf { it.daysExclMakeupWeekend }
-            )
+            if (!isLandscape){
+                BottomSection(
+                    midTime = midTimeStr,
+                    onMidTimeChange = {
+                        midTimeStr = it
+                        PreferencesStore.setOffworkMid(it)
+                    },
+                    midCountdown = midCountdown,
+                    nightTime = nightTimeStr,
+                    onNightTimeChange = {
+                        nightTimeStr = it
+                        PreferencesStore.setOffworkNight(it)
+                    },
+                    nightCountdown = nightCountdown,
+                    totalHolidays = holidays.sumOf { it.duration }.toInt(),
+                    totalExclMakeup = holidays.sumOf { it.daysExclMakeup },
+                    totalExclWeekend = holidays.sumOf { it.daysExclMakeupWeekend }
+                )
+            }else {
+
+                // 横屏 → 压缩显示，仅占一行
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(8.dp)
+                ) {
+
+                    Text(
+                        "午休 $midCountdown    下班 $nightCountdown   节日合计 $totalHolidays 天",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
         }
     ) { innerPadding ->
 
@@ -129,6 +157,12 @@ fun MainScreen() {
                 .padding(innerPadding)
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    activeHolidayTooltip = null
+                }
         ) {
             if (repoStatus.isNotEmpty()) StatusBanner(repoStatus)
 
@@ -142,14 +176,15 @@ fun MainScreen() {
                     Row(
                         Modifier
                             .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
                             .padding(12.dp)
                     ) {
                         HeaderCell("节日", 1.5f)
                         HeaderCell("日期", 2.4f)
                         HeaderCell("天数", 0.9f)
-                        HeaderCell("去调休", 1f)
-                        HeaderCell("去双调", 1f)
+                        HeaderCell("去除 调休", 1f)
+                        HeaderCell("去除 双调", 1f)
                         HeaderCell("倒计时", 1.8f)
                     }
 
@@ -201,25 +236,37 @@ fun StatusBanner(status: String) {
 
 @Composable
 fun RowScope.HeaderCell(text: String, weight: Float) {
-    Text(
-        text,
-        modifier = Modifier.weight(weight),
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onPrimaryContainer
-    )
+    Box(
+        modifier = Modifier
+            .weight(weight)
+            .fillMaxHeight(),     // 现在不会撑开布局，因为行高度已经由 Intrinsic 控制
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
 }
 
-class AboveAnchorTooltipPositionProvider(private val density: Density) : PopupPositionProvider {
+class AboveAnchorTooltipPositionProvider(
+    private val density: Density,
+    private val offset: Offset?
+) : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize
     ): IntOffset {
-        val x = anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
-        val offset = with(density) { 8.dp.roundToPx() }
-        val y = (anchorBounds.top - popupContentSize.height - offset).coerceAtLeast(0)
+        val targetX = if (offset != null) anchorBounds.left + offset.x else anchorBounds.left + anchorBounds.width / 2f
+        val targetY = if (offset != null) anchorBounds.top + offset.y else anchorBounds.top.toFloat()
+
+        val x = (targetX - popupContentSize.width / 2).toInt()
+        val offsetPx = with(density) { 8.dp.roundToPx() }
+        val y = (targetY - popupContentSize.height - offsetPx).toInt().coerceAtLeast(0)
         return IntOffset(x, y)
     }
 }
@@ -241,6 +288,8 @@ fun HolidayRow(holiday: Holiday, isTooltipVisible: Boolean, onRowClick: () -> Un
         if (isOngoing) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
         else Color.Transparent
 
+    var rowClickOffset by remember { mutableStateOf<Offset?>(null) }
+
     val tooltipState = rememberTooltipState(isPersistent = true)
 
     LaunchedEffect(isTooltipVisible) {
@@ -248,16 +297,18 @@ fun HolidayRow(holiday: Holiday, isTooltipVisible: Boolean, onRowClick: () -> Un
     }
 
     val density = LocalDensity.current
-    val positionProvider = remember(density) { AboveAnchorTooltipPositionProvider(density) }
+    val positionProvider = remember(density, rowClickOffset) { 
+        AboveAnchorTooltipPositionProvider(density, rowClickOffset) 
+    }
 
     TooltipBox(
         positionProvider = positionProvider,
         tooltip = {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.78f),
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shadowElevation = 4.dp
+//                shadowElevation = 4.dp
             ) {
                 val yearText =
                     if (holiday.startDate.year == holiday.endDate.year)
@@ -271,11 +322,24 @@ fun HolidayRow(holiday: Holiday, isTooltipVisible: Boolean, onRowClick: () -> Un
                 )
             }
         },
-        state = tooltipState
+        state = tooltipState,
+        focusable = false,
+        enableUserInput = false
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull()
+                            if (change != null && change.pressed && !change.previousPressed) {
+                                rowClickOffset = change.position
+                            }
+                        }
+                    }
+                }
                 .clickable { onRowClick() }
                 .background(rowBg)
                 .padding(12.dp),
