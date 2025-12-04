@@ -8,7 +8,7 @@
         <!-- 让应用内容显示到系统栏下面（自定义 Insets 来避免元素被遮挡） -->
         <item name="android:windowFullscreen">false</item>
 
-        <!-- 禁用系统默认的 fitsSystemWindows，使我们可以用 insets 控制 -->
+        <!-- 禁用系统默认的 fitsSystemWindows，使可以用 insets 控制 -->
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
 
         <!-- Material 允许 edge-to-edge -->

@@ -163,7 +163,7 @@ object CountdownRepository {
 
         // === Step1: 扫描并合并普通假期，暂存调休事件 ===
         for (h in raw) {
-            // 跳过没有结束时间（理论上你的 Holiday 总有 end），以及早于当前年的事件（按 endDate 判定）
+            // 跳过没有结束时间，以及早于当前年的事件（按 endDate 判定）
             if (h.endDate.year < systemNowYear) continue
 
             val baseName = normalizeName(h.name)
@@ -263,7 +263,7 @@ object CountdownRepository {
             val daysExclMakeup = (durationDays - makeupCount).coerceAtLeast(0)
             val daysExclMakeupWeekend = (durationDays - makeupCount - weekendDays).coerceAtLeast(0)
 
-            // 构造 Holiday（与你现有 Holiday 数据类兼容）
+
             val h = Holiday(name, begin, end)
             h.daysExclMakeup = daysExclMakeup.toInt()
             h.daysExclMakeupWeekend = daysExclMakeupWeekend.toInt()

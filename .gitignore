@@ -18,3 +18,4 @@ main.spec
 /Android/.gradle
 Android/local.properties
 /Android/build
+/Android/app/release
