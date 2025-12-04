@@ -2,6 +2,7 @@
 
 这是一个基于 Jetpack Compose 开发的中国法定节假日倒计时 Android 应用。它是 [Holiday-Countdown](https://github.com/shuyz/Holiday-Countdown) (Python版) 的 Android 移植版本，完美复刻了原版的核心功能与算法。
 
+![预览](安卓预览.jpg)
 ## ✨ 主要功能
 
 *   **📅 节假日倒计时**：精准显示距离下一个假期的天数，支持“进行中”状态显示。
