@@ -1,9 +1,11 @@
 # ui/main_window.py
+import sys
+
 import requests
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import List
 
-from PyQt6.QtWidgets import QTableWidgetItem
+from PyQt6.QtWidgets import QTableWidgetItem, QSystemTrayIcon, QApplication
 
 from holidays.parser import Holiday
 from holidays.fetcher import fetch_ics
@@ -16,6 +18,13 @@ import os
 
 CACHE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "holiday_data.ics"))
 CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.json"))
+
+
+def resource_path(relative_path):
+    """获取打包后资源的正确路径"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 
 class HolidayItemWidget(QtWidgets.QWidget):
@@ -119,6 +128,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_ics_and_refresh()
         self._dragging = False
         self._drag_pos = None
+        icon_path = resource_path("icon.ico")
+        self.setWindowIcon(QtGui.QIcon(icon_path))
 
     # === 新增：统一的安全弹窗函数 ===
     def show_safe_dialog(self, title: str, text: str, icon=QtWidgets.QMessageBox.Icon.Information):
@@ -272,7 +283,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
-        icon = QtGui.QIcon.fromTheme("calendar")
+        icon_path = resource_path("icon.ico")
+        icon = QtGui.QIcon(icon_path)
+
+
+
         if icon.isNull():
             pix = QtGui.QPixmap(32, 32)
             pix.fill(QtGui.QColor("orange"))
@@ -282,7 +297,7 @@ class MainWindow(QtWidgets.QMainWindow):
         show_action = menu.addAction("显示主界面")
         show_action.triggered.connect(self.show_and_raise)
         exit_action = menu.addAction("退出")
-        exit_action.triggered.connect(QtWidgets.QApplication.quit)
+        exit_action.triggered.connect(self.force_quit)
         self.tray.setContextMenu(menu)
         self.tray.activated.connect(self.on_tray_activated)
         self.tray.show()
@@ -383,6 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def show_and_raise(self):
         self.show()
+        self.showNormal()
         self.raise_()
         self.activateWindow()
 
@@ -391,10 +407,23 @@ class MainWindow(QtWidgets.QMainWindow):
             self.show_and_raise()
 
     def closeEvent(self, event):
+        if getattr(self, "_force_quit", False):
+            event.accept()
+            return
         event.ignore()
         self.hide()
         self.tray.showMessage("节假日倒计时", "程序已最小化到托盘，双击图标可以恢复。",
                               QtWidgets.QSystemTrayIcon.MessageIcon.Information, 2000)
+
+
+    def force_quit(self):
+        self._force_quit = True
+        self.tray.hide()
+        QApplication.quit()
+
+
+
+
 
     def start_timers(self):
         self.ui_timer = QtCore.QTimer(self)

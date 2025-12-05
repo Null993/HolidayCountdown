@@ -142,4 +142,5 @@ HolidayCountdown/
    * 🔒 锁定窗口
    * 🌫 透明度调节
 
-
+## 📜 License
+本项目采用 Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) 许可证发布。
