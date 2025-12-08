@@ -183,8 +183,8 @@ fun MainScreen() {
                         HeaderCell("节日", 1.5f)
                         HeaderCell("日期", 2.4f)
                         HeaderCell("天数", 0.9f)
-                        HeaderCell("去除 调休", 1f)
-                        HeaderCell("去除 双调", 1f)
+                        HeaderCell("去除\n调休", 1f)
+                        HeaderCell("去除\n双调", 1f)
                         HeaderCell("倒计时", 1.8f)
                     }
 
