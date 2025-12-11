@@ -180,7 +180,7 @@ class MainWindow(QtWidgets.QMainWindow):
             json.dump(self.config, f, indent=2, ensure_ascii=False)
 
     def init_ui(self):
-        self.setWindowTitle("节假日与下班倒计时")
+        self.setWindowTitle("节假日与下班倒计时 v1.3  By Null993")
         central = QtWidgets.QWidget()
         v = QtWidgets.QVBoxLayout()
 
