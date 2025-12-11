@@ -1,0 +1,1 @@
+pyinstaller -w -i icon.ico --noconfirm --clean --onedir --name HolidayCountdown --icon=icon.ico --add-data "icon.ico;." --add-data "holiday_data.ics;." --add-data "config.json;."  main.py -y

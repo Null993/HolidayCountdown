@@ -5,10 +5,9 @@ import requests
 from PyQt6 import QtWidgets, QtGui, QtCore
 from typing import List
 
-from PyQt6.QtWidgets import QTableWidgetItem, QSystemTrayIcon, QApplication
+from PyQt6.QtWidgets import QApplication
 
 from holidays.parser import Holiday
-from holidays.fetcher import fetch_ics
 from holidays.parser import parse_ics
 from holidays.processor import merge_and_filter_holidays
 from holidays.scheduler import time_until, compute_smart_holiday_days
@@ -16,8 +15,9 @@ import json
 from datetime import datetime, time as dt_time
 import os
 
-CACHE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "holiday_data.ics"))
-CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.json"))
+ICS_CACHE_PATH =  "holiday_data.ics"
+CONFIG_PATH = "config.json"
+ICON_PATH = "icon.ico"
 
 
 def resource_path(relative_path):
@@ -112,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.locked = False
         self.opacity = 1.0
 
-        self.config_path = os.path.abspath(config_path)
+        self.config_path = resource_path(config_path)
         self.config = self.load_config()
 
         # 从配置恢复状态
@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_ics_and_refresh()
         self._dragging = False
         self._drag_pos = None
-        icon_path = resource_path("icon.ico")
+        icon_path = resource_path(ICON_PATH)
         self.setWindowIcon(QtGui.QIcon(icon_path))
 
     # === 新增：统一的安全弹窗函数 ===
@@ -283,7 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 托盘
         self.tray = QtWidgets.QSystemTrayIcon(self)
-        icon_path = resource_path("icon.ico")
+        icon_path = resource_path(ICON_PATH)
         icon = QtGui.QIcon(icon_path)
 
 
@@ -443,38 +443,108 @@ class MainWindow(QtWidgets.QMainWindow):
                 widget.setParent(None)
 
     def load_ics_and_refresh(self):
+        """
+        尝试从远端拉取 ICS 并更新本地缓存；若失败则回退到本地缓存（如果存在）。
+        1. 请求成功后校验内容完整性（BEGIN:VCALENDAR / END:VCALENDAR / 至少一个 VEVENT）。
+        2. 保存时采用原子写入（先写入临时文件再替换）。
+        3. 如果远端数据无效但本地有缓存，使用本地并提示；如果本地也没有缓存则报错并返回。
+        """
         ics_url = self.config.get("ics_url")
         data = None
+        cache_path = resource_path(ICS_CACHE_PATH)
+        cache_dir = os.path.dirname(cache_path) or "."
 
+        # UI 反馈：开始请求
+        self.refresh_btn.setText("正在获取 ICS...")
+        QtWidgets.QApplication.processEvents()
+
+        # 1) 尝试请求远端 ICS
         try:
-            self.refresh_btn.setText("正在获取 ICS...")
-            QtWidgets.QApplication.processEvents()
             resp = requests.get(ics_url, timeout=10)
             resp.raise_for_status()
-            data = resp.text
-            os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
-            with open(CACHE_PATH, "w", encoding="utf-8") as f:
-                f.write(data)
-            print(f"✅ 已更新本地 ICS 缓存: {CACHE_PATH}")
-            self.refresh_btn.setText("刷新 ICS")
-        except Exception as e:
-            print(f"⚠️ 获取 ICS 失败: {e}")
-            self.refresh_btn.setText("刷新 ICS")
-            if os.path.exists(CACHE_PATH):
-                with open(CACHE_PATH, "r", encoding="utf-8") as f:
+            candidate = resp.text
+
+            # 简单的完整性校验 —— 确保是一个 calendar 且至少有一个 VEVENT
+            text_lower = candidate.upper()
+            valid = ("BEGIN:VCALENDAR" in text_lower) and ("END:VCALENDAR" in text_lower) and ("BEGIN:VEVENT" in text_lower)
+
+            if not valid:
+                # 远端返回但内容看起来不完整 -> 不覆盖本地缓存
+                raise ValueError("远端 ICS 内容校验失败（不包含 BEGIN:VCALENDAR/END:VCALENDAR/BEGIN:VEVENT）")
+
+            # 远端 ICS 看起来有效，保存到本地（原子写入）
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+                tmp_path = cache_path + ".tmp"
+                with open(tmp_path, "w", encoding="utf-8") as tf:
+                    tf.write(candidate)
+                # 原子替换（Windows 下也可用）
+                os.replace(tmp_path, cache_path)
+                print(f"✅ 已更新本地 ICS 缓存: {cache_path}")
+                self.show_message("已成功更新假期数据（使用远端 ICS）。", duration=4000)
+                data = candidate
+            except Exception as save_exc:
+                # 保存失败：回退到本地缓存（如果存在）
+                print(f"⚠️ 保存本地 ICS 失败: {save_exc}")
+                # 尝试使用本地缓存
+                if os.path.exists(cache_path):
+                    with open(cache_path, "r", encoding="utf-8") as f:
+                        data = f.read()
+                    self.show_safe_dialog("注意", "远端 ICS 获取成功但无法写入本地缓存，已使用本地缓存。")
+                else:
+                    self.show_safe_dialog("错误", f"无法保存远端 ICS，本地也没有缓存（错误：{save_exc}）")
+                    self.refresh_btn.setText("刷新 ICS")
+                    return
+
+        except requests.RequestException as req_e:
+            # 网络或请求层面错误：回退到本地缓存（如果存在）
+            print(f"⚠️ 获取 ICS 失败（网络/请求错误）：{req_e}")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
                     data = f.read()
-                self.show_safe_dialog("离线模式","无法获取最新假期信息，已使用本地缓存。")
+                # 离线模式提示
+                self.show_safe_dialog("离线模式", "无法获取最新假期信息，已使用本地缓存。")
             else:
-
-                self.show_safe_dialog("错误", "无法获取假期数据，且没有本地缓存。")
+                self.show_safe_dialog("错误", f"无法获取假期数据，且没有本地缓存。网络错误：{req_e}")
+                self.refresh_btn.setText("刷新 ICS")
                 return
+        except ValueError as val_e:
+            # 远端返回但内容无效
+            print(f"⚠️ 远端 ICS 内容无效：{val_e}")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+                self.show_safe_dialog("提示", "远端假期数据不完整，已使用本地缓存。")
+            else:
+                self.show_safe_dialog("错误", f"远端假期数据不完整，且没有本地缓存。详情：{val_e}")
+                self.refresh_btn.setText("刷新 ICS")
+                return
+        except Exception as unexpected:
+            # 其他不可预期异常
+            print(f"⚠️ 获取/处理 ICS 发生未预期错误：{unexpected}")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+                self.show_safe_dialog("提示", "处理假期数据时出错，已使用本地缓存。")
+            else:
+                self.show_safe_dialog("错误", f"发生错误且没有本地缓存：{unexpected}")
+                self.refresh_btn.setText("刷新 ICS")
+                return
+        finally:
+            # 恢复按钮文本（如果未提前 return）
+            self.refresh_btn.setText("刷新 ICS")
 
+        # 2) 解析 data 并刷新 UI
         if data:
-            holidays = parse_ics(data)
-            holidays = merge_and_filter_holidays(holidays)
-            self.holidays = holidays
-            self.refresh_list()
-            self.refresh_stats()
+            try:
+                holidays = parse_ics(data)
+                holidays = merge_and_filter_holidays(holidays)
+                self.holidays = holidays
+                self.refresh_list()
+                self.refresh_stats()
+            except Exception as parse_exc:
+                print(f"⚠️ 解析 ICS 失败：{parse_exc}")
+                self.show_safe_dialog("错误", f"解析假期数据失败：{parse_exc}")
 
     def refresh_list(self):
         self.clear_list()
