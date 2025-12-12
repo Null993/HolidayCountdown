@@ -491,7 +491,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # 原子替换（Windows 下也可用）
                 os.replace(tmp_path, cache_path)
                 print(f"✅ 已更新本地 ICS 缓存: {cache_path}")
-                self.show_message("已成功更新假期数据（使用远端 ICS）。", duration=4000)
+                self.show_message("已成功更新假期数据（使用远端 ICS）", duration=4000)
                 data = candidate
             except Exception as save_exc:
                 # 保存失败：回退到本地缓存（如果存在）
