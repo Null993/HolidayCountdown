@@ -131,7 +131,17 @@ class MainWindow(QtWidgets.QMainWindow):
         icon_path = resource_path(ICON_PATH)
         self.setWindowIcon(QtGui.QIcon(icon_path))
 
-    # === 新增：统一的安全弹窗函数 ===
+    def notify(self, title: str, text: str):
+        """使用托盘气泡显示提示信息"""
+        if self.tray:
+            self.tray.showMessage(
+                title,
+                text,
+                QtWidgets.QSystemTrayIcon.MessageIcon.Information,
+                2000
+            )
+
+    # === 新增：统一的安全弹窗函数 === (弃用，换成托盘气泡)
     def show_safe_dialog(self, title: str, text: str, icon=QtWidgets.QMessageBox.Icon.Information):
         """
         安全弹窗：在主窗口置顶状态下仍能正常显示在最前面
@@ -490,9 +500,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 if os.path.exists(cache_path):
                     with open(cache_path, "r", encoding="utf-8") as f:
                         data = f.read()
-                    self.show_safe_dialog("注意", "远端 ICS 获取成功但无法写入本地缓存，已使用本地缓存。")
+                    self.notify("注意", "远端 ICS 获取成功但无法写入本地缓存，已使用本地缓存。")
                 else:
-                    self.show_safe_dialog("错误", f"无法保存远端 ICS，本地也没有缓存（错误：{save_exc}）")
+                    self.notify("错误", f"无法保存远端 ICS，本地也没有缓存（错误：{save_exc}）")
                     self.refresh_btn.setText("刷新 ICS")
                     return
 
@@ -503,9 +513,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 with open(cache_path, "r", encoding="utf-8") as f:
                     data = f.read()
                 # 离线模式提示
-                self.show_safe_dialog("离线模式", "无法获取最新假期信息，已使用本地缓存。")
+                self.notify("离线模式", "无法获取最新假期信息，已使用本地缓存。")
             else:
-                self.show_safe_dialog("错误", f"无法获取假期数据，且没有本地缓存。网络错误：{req_e}")
+                self.notify("错误", f"无法获取假期数据，且没有本地缓存。网络错误：{req_e}")
                 self.refresh_btn.setText("刷新 ICS")
                 return
         except ValueError as val_e:
@@ -514,9 +524,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.exists(cache_path):
                 with open(cache_path, "r", encoding="utf-8") as f:
                     data = f.read()
-                self.show_safe_dialog("提示", "远端假期数据不完整，已使用本地缓存。")
+                self.notify("提示", "远端假期数据不完整，已使用本地缓存。")
             else:
-                self.show_safe_dialog("错误", f"远端假期数据不完整，且没有本地缓存。详情：{val_e}")
+                self.notify("错误", f"远端假期数据不完整，且没有本地缓存。详情：{val_e}")
                 self.refresh_btn.setText("刷新 ICS")
                 return
         except Exception as unexpected:
@@ -525,9 +535,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.exists(cache_path):
                 with open(cache_path, "r", encoding="utf-8") as f:
                     data = f.read()
-                self.show_safe_dialog("提示", "处理假期数据时出错，已使用本地缓存。")
+                self.notify("提示", "处理假期数据时出错，已使用本地缓存。")
             else:
-                self.show_safe_dialog("错误", f"发生错误且没有本地缓存：{unexpected}")
+                self.notify("错误", f"发生错误且没有本地缓存：{unexpected}")
                 self.refresh_btn.setText("刷新 ICS")
                 return
         finally:
@@ -544,7 +554,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.refresh_stats()
             except Exception as parse_exc:
                 print(f"⚠️ 解析 ICS 失败：{parse_exc}")
-                self.show_safe_dialog("错误", f"解析假期数据失败：{parse_exc}")
+                self.notify("错误", f"解析假期数据失败：{parse_exc}")
 
     def refresh_list(self):
         self.clear_list()
@@ -622,7 +632,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.save_config()
                 self.show_message("配置已保存")
         except Exception:
-            self.show_safe_dialog("错误", "时间格式应为 HH:MM（24 小时）")
+            self.notify("错误", "时间格式应为 HH:MM（24 小时）")
 
 
     def show_status_message(self, msg: str, duration: int = 2000):
