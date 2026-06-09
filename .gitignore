@@ -20,3 +20,10 @@ Android/local.properties
 /Android/build
 /Android/app/release
 HolidayCountdown.spec
+
+# Reasonix AI tool auto-generated metadata
+/.reasonix/
+
+# Mini program
+miniprogram/node_modules/
+miniprogram/project.config.json

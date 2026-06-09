@@ -1,0 +1,475 @@
+/* =============================================
+   节假日倒计时 — 主页面样式
+   支持深色/浅色系统主题自适应
+   ============================================= */
+
+/* === 全局字体 === */
+page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* =============================================
+   深色主题 (default)
+   ============================================= */
+.theme-dark { background: #0a0e1a; color: #e4e8f0; }
+.theme-dark .page-container { background: linear-gradient(180deg, #0a0e1a 0%, #0f1525 100%); }
+.theme-dark .top-bar         { background: linear-gradient(135deg, #111827, #1a2332); }
+.theme-dark .holiday-card    { background: #111c2e; border-color: rgba(255,255,255,0.04); }
+.theme-dark .holiday-card:active { background: #162238; }
+.theme-dark .header-row      { background: rgba(255,255,255,0.03); }
+.theme-dark .bottom-panel    { background: linear-gradient(135deg, #111827, #1a2332); border-top-color: rgba(255,255,255,0.05); }
+.theme-dark .modal-content   { background: #111c2e; border-color: rgba(255,255,255,0.06); }
+.theme-dark .form-input      { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); color: #e4e8f0; }
+
+/* =============================================
+   浅色主题
+   ============================================= */
+.theme-light { background: #f0f2f5; color: #1a202c; }
+.theme-light .page-container { background: linear-gradient(180deg, #f0f2f5 0%, #e8ecf1 100%); }
+.theme-light .top-bar         { background: linear-gradient(135deg, #ffffff, #f0f4ff); border-bottom-color: rgba(0,0,0,0.06); }
+.theme-light .welcome-text    { color: #e07c2f; }
+.theme-light .top-btn         { background: rgba(0,0,0,0.04); }
+.theme-light .top-btn:active  { background: rgba(0,0,0,0.08); }
+.theme-light .btn-text        { color: #4a5568; }
+.theme-light .holiday-card    { background: #ffffff; border-color: rgba(0,0,0,0.06); box-shadow: 0 1rpx 4rpx rgba(0,0,0,0.04); }
+.theme-light .holiday-card:active { background: #f7f9fc; }
+.theme-light .header-row      { background: rgba(0,0,0,0.02); }
+.theme-light .header-row .col-name,
+.theme-light .header-row .col-date,
+.theme-light .header-row .col-duration,
+.theme-light .header-row .col-stats,
+.theme-light .header-row .col-countdown { color: #8896ab; }
+.theme-light .holiday-name    { color: #1a202c; }
+.theme-light .holiday-date    { color: #718096; }
+.theme-light .holiday-duration { color: #38a169; }
+.theme-light .holiday-stats   { color: #718096; }
+.theme-light .holiday-countdown { color: #d69e2e; }
+.theme-light .card-active     { border-color: rgba(56, 161, 105, 0.3); background: #ffffff; }
+.theme-light .bottom-panel    { background: linear-gradient(135deg, #ffffff, #f0f4ff); border-top-color: rgba(0,0,0,0.06); }
+.theme-light .offwork-label   { color: #4a5568; }
+.theme-light .offwork-countdown { color: #2b6cb0; }
+.theme-light .offwork-icon    { color: #e07c2f; }
+.theme-light .offwork-time    { color: #718096; }
+.theme-light .stats-section   { border-left-color: rgba(0,0,0,0.06); }
+.theme-light .stats-label     { color: #8896ab; }
+.theme-light .stats-value     { color: #d69e2e; }
+.theme-light .modal-mask      { background: rgba(0,0,0,0.3); }
+.theme-light .modal-content   { background: #ffffff; border-color: rgba(0,0,0,0.06); }
+.theme-light .modal-title     { color: #1a202c; }
+.theme-light .form-label      { color: #4a5568; }
+.theme-light .form-input      { background: #f7f9fc; border-color: rgba(0,0,0,0.1); color: #1a202c; }
+.theme-light .form-input:focus { border-color: #667eea; }
+.theme-light .form-error      { color: #e53e3e; }
+.theme-light .modal-btn-cancel { color: #8896ab; border-right-color: rgba(0,0,0,0.06); }
+.theme-light .modal-btn-confirm { color: #667eea; }
+.theme-light .toast           { background: rgba(255,255,255,0.92); color: #1a202c; border-color: rgba(0,0,0,0.06); }
+.theme-light .retry-btn       { background: #667eea; }
+.theme-light .loading-text    { color: #8896ab; }
+
+/* =============================================
+   布局
+   ============================================= */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  transition: background 0.3s;
+}
+
+/* === 顶部栏 === */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 28rpx;
+  border-bottom: 1rpx solid;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+
+.welcome-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.top-bar-right {
+  display: flex;
+  gap: 12rpx;
+}
+
+.top-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 18rpx;
+  transition: all 0.2s;
+}
+
+.top-btn:active {
+  transform: scale(0.95);
+}
+
+.btn-icon { font-size: 26rpx; }
+.btn-text { font-size: 22rpx; }
+
+.btn-loading .btn-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* === 加载 & 错误 === */
+.loading-container,
+.error-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40rpx;
+}
+
+.loading-text { font-size: 26rpx; }
+
+.error-text {
+  font-size: 26rpx;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.retry-btn {
+  padding: 16rpx 48rpx;
+  color: #fff;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+}
+
+.retry-btn:active { opacity: 0.8; }
+
+/* === 节假日列表（至少占一半屏幕） === */
+.holiday-list {
+  flex: 1;
+  min-height: 50vh;
+  overflow-y: auto;
+  padding: 10rpx 20rpx 8rpx;
+}
+
+.empty-hint {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300rpx;
+  font-size: 26rpx;
+}
+
+/* 假期卡片 */
+.holiday-card {
+  border-radius: 14rpx;
+  margin-bottom: 6rpx;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid;
+  transition: all 0.2s;
+}
+
+.holiday-card:active {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.card-active {
+  background: transparent !important;
+}
+
+/* 表头 */
+.header-row {
+  border: 1rpx solid transparent;
+  margin-bottom: 4rpx;
+  padding: 14rpx 20rpx;
+  transition: all 0.3s;
+}
+
+/* 卡片行 — flex 布局 */
+.card-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* 列宽 — 全部居中对齐 */
+.col-name      { flex: 2; min-width: 0; text-align: center; }
+.col-date      { flex: 2.2; min-width: 0; text-align: center; }
+.col-duration  { flex: 1.2; text-align: center; }
+.col-stats     { flex: 1.6; text-align: center; }
+.col-countdown { flex: 1.4; text-align: center; min-width: 0; }
+
+/* 表头文字 */
+.header-row .col-name,
+.header-row .col-date,
+.header-row .col-duration,
+.header-row .col-stats,
+.header-row .col-countdown {
+  font-size: 22rpx;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+/* 数据行文字 — 全部居中 */
+.holiday-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.holiday-date {
+  font-size: 22rpx;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.holiday-duration {
+  font-size: 26rpx;
+  font-weight: 600;
+  display: block;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.holiday-stats {
+  font-size: 22rpx;
+  display: block;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.holiday-countdown {
+  font-size: 24rpx;
+  font-weight: 600;
+  display: block;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+/* === 底部面板 === */
+.bottom-panel {
+  flex-shrink: 0;
+  display: flex;
+  border-top: 1rpx solid;
+  padding: 14rpx 18rpx;
+  gap: 12rpx;
+  transition: all 0.3s;
+}
+
+/* 下班栏 — 左右两列 */
+.offwork-section {
+  flex: 2.5;
+  display: flex;
+  flex-direction: row;
+  gap: 8rpx;
+}
+
+.offwork-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.offwork-block-right {
+  border-left: 1rpx solid rgba(255, 255, 255, 0.06);
+  padding-left: 8rpx;
+}
+
+.theme-light .offwork-block-right {
+  border-left-color: rgba(0, 0, 0, 0.06);
+}
+
+.offwork-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.offwork-icon {
+  font-size: 22rpx;
+  transition: color 0.3s;
+}
+
+.offwork-label {
+  font-size: 22rpx;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.offwork-time {
+  font-size: 22rpx;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.offwork-countdown {
+  font-size: 26rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+
+/* 统计栏 */
+.stats-section {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6rpx;
+  padding-left: 12rpx;
+  border-left: 1rpx solid;
+  transition: all 0.3s;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats-label {
+  font-size: 20rpx;
+  transition: color 0.3s;
+}
+
+.stats-value {
+  font-size: 22rpx;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+/* === 设置弹窗 === */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.modal-content {
+  width: 580rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+  border: 1rpx solid;
+  transition: all 0.3s;
+}
+
+.modal-header {
+  padding: 28rpx 32rpx 20rpx;
+}
+
+.modal-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+
+.modal-body {
+  padding: 8rpx 32rpx 24rpx;
+}
+
+.form-group {
+  margin-bottom: 20rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 24rpx;
+  margin-bottom: 10rpx;
+  transition: color 0.3s;
+}
+
+.form-input {
+  width: 100%;
+  height: 72rpx;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+  transition: all 0.3s;
+}
+
+.form-error {
+  display: block;
+  font-size: 22rpx;
+  margin-top: 8rpx;
+  transition: color 0.3s;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.3s;
+}
+
+.theme-light .modal-footer { border-top-color: rgba(0,0,0,0.06); }
+
+.modal-btn {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.modal-btn:active { opacity: 0.7; }
+
+.modal-btn-cancel {
+  border-right: 1rpx solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s;
+}
+
+.modal-btn-confirm {
+  transition: color 0.3s;
+}
+
+/* === Toast === */
+.toast {
+  position: fixed;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(17,28,46,0.92);
+  color: #e4e8f0;
+  padding: 16rpx 36rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  z-index: 2000;
+  pointer-events: none;
+  animation: toastIn 0.3s ease;
+  border: 1rpx solid rgba(255,255,255,0.06);
+  transition: all 0.3s;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20rpx); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

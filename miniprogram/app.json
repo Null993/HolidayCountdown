@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "节假日倒计时",
+    "navigationBarBackgroundColor": "#141b2d",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0b0e17",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "sitemapLocation": "sitemap.json"
+}

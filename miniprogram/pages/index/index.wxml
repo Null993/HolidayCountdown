@@ -1,0 +1,139 @@
+<!-- 主页面 WXML -->
+<view class="page-container theme-{{theme}}">
+
+  <!-- ======== 顶部操作栏 ======== -->
+  <view class="top-bar">
+    <view class="top-bar-left">
+      <text class="welcome-text">{{welcomeText}}</text>
+    </view>
+    <view class="top-bar-right">
+      <view class="top-btn {{refreshing ? 'btn-loading' : ''}}" bindtap="onRefresh">
+        <text class="btn-icon">{{refreshing ? '⟳' : '↻'}}</text>
+        <text class="btn-text">{{refreshing ? '刷新中' : '刷新'}}</text>
+      </view>
+      <view class="top-btn" bindtap="onOpenSettings">
+        <text class="btn-icon">⚙</text>
+        <text class="btn-text">设置</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ======== 加载状态 ======== -->
+  <view wx:if="{{loading && holidays.length === 0}}" class="loading-container">
+    <text class="loading-text">正在获取假期数据...</text>
+  </view>
+
+  <!-- ======== 错误提示 ======== -->
+  <view wx:if="{{errorMsg && holidays.length === 0}}" class="error-container">
+    <text class="error-text">{{errorMsg}}</text>
+    <view class="retry-btn" bindtap="onRefresh">重试</view>
+  </view>
+
+  <!-- ======== 节假日列表（至少占一半屏幕） ======== -->
+  <scroll-view class="holiday-list" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:if="{{holidays.length === 0 && !loading}}" class="empty-hint">
+      <text>暂无假期数据，点击刷新获取</text>
+    </view>
+
+    <!-- 表头 -->
+    <view class="holiday-card header-row">
+      <view class="card-row">
+        <view class="col-name">节日</view>
+        <view class="col-date">日期</view>
+        <view class="col-duration">天数</view>
+        <view class="col-stats">调休后/纯假</view>
+        <view class="col-countdown">倒计时</view>
+      </view>
+    </view>
+
+    <!-- 假期行 -->
+    <view wx:for="{{holidays}}" wx:key="uid" class="holiday-card {{countdownTexts[index] === '进行中' ? 'card-active' : ''}}">
+      <view class="card-row">
+        <view class="col-name">
+          <text class="holiday-name">{{item.name}}</text>
+        </view>
+        <view class="col-date">
+          <text class="holiday-date">{{item.dateRange}}</text>
+        </view>
+        <view class="col-duration">
+          <text class="holiday-duration">{{item.duration}}天</text>
+        </view>
+        <view class="col-stats">
+          <text class="holiday-stats">{{item.daysExclMakeup}} / {{item.daysExclMakeupWeekend}}</text>
+        </view>
+        <view class="col-countdown">
+          <text class="holiday-countdown {{countdownTexts[index] === '进行中' ? 'countdown-active' : ''}}">{{countdownTexts[index]}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- ======== 底部面板 ======== -->
+  <view class="bottom-panel">
+    <!-- 下班倒计时：左右两栏 -->
+    <view class="offwork-section">
+      <!-- 中午栏 -->
+      <view class="offwork-block">
+        <view class="offwork-title-row">
+          <text class="offwork-icon">☀</text>
+          <text class="offwork-label">中午下班</text>
+          <text class="offwork-time">{{offworkMidTime}}</text>
+        </view>
+        <text class="offwork-countdown">{{midCountdown}}</text>
+      </view>
+      <!-- 晚上栏 -->
+      <view class="offwork-block offwork-block-right">
+        <view class="offwork-title-row">
+          <text class="offwork-icon">🌙</text>
+          <text class="offwork-label">晚上下班</text>
+          <text class="offwork-time">{{offworkTime}}</text>
+        </view>
+        <text class="offwork-countdown">{{nightCountdown}}</text>
+      </view>
+    </view>
+
+    <!-- 假期统计 -->
+    <view class="stats-section">
+      <view class="stats-row">
+        <text class="stats-label">总天数</text>
+        <text class="stats-value">{{stats.totalDays}}</text>
+      </view>
+      <view class="stats-row">
+        <text class="stats-label">排除调休</text>
+        <text class="stats-value">{{stats.daysExclMakeup}}</text>
+      </view>
+      <view class="stats-row">
+        <text class="stats-label">纯假(除周末)</text>
+        <text class="stats-value">{{stats.daysExclMakeupWeekend}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ======== 设置弹窗 ======== -->
+  <view wx:if="{{showSettings}}" class="modal-mask" bindtap="onCloseSettings">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">⚙ 设置</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-group">
+          <text class="form-label">中午下班时间 (HH:MM)</text>
+          <input class="form-input" type="text" value="{{editMidTime}}" bindinput="onMidTimeInput" placeholder="例如 12:00" maxlength="5" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">晚上下班时间 (HH:MM)</text>
+          <input class="form-input" type="text" value="{{editNightTime}}" bindinput="onNightTimeInput" placeholder="例如 18:00" maxlength="5" />
+        </view>
+        <text wx:if="{{settingError}}" class="form-error">{{settingError}}</text>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn modal-btn-cancel" bindtap="onCloseSettings">取消</view>
+        <view class="modal-btn modal-btn-confirm" bindtap="onSaveSettings">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ======== Toast 提示 ======== -->
+  <view wx:if="{{toastText}}" class="toast">{{toastText}}</view>
+
+</view>
